@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            width: 500px;
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+        }
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+            background: #21262d;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #30363d;
+            color: white;
+        }
+        button {
+            background: #238636;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #3c3c3c;
+            cursor: not-allowed;
+        }
+        .user-message, .bot-message {
+            max-width: 90%;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 5px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .user-message {
+            background: #1f6feb;
+            text-align: right;
+            align-self: flex-end;
+        }
+        .bot-message {
+            background: #484f58;
+            text-align: left;
+            align-self: flex-start;
+        }
+        .loading {
+            color: #aaa;
+            font-size: 14px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chatbot</h1>
+        <div class="chat-box" id="chatBox"></div>
+        <div class="input-container">
+            <input type="text" id="userMessage" placeholder="Type a message..." disabled>
+            <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+        </div>
+    </div>
+
+    <script>
+        const inputField = document.getElementById("userMessage");
+        const sendButton = document.getElementById("sendButton");
+        const chatBox = document.getElementById("chatBox");
+
+        // Enable input field only when page loads
+        window.onload = () => {
+            inputField.disabled = false;
+            sendButton.disabled = false;
+        };
+
+        inputField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = inputField.value.trim();
+            if (!message) return;
+
+            // Display the user's message
+            chatBox.innerHTML += `<div class='user-message'>${message}</div>`;
+            inputField.value = "";
+            inputField.disabled = true;
+            sendButton.disabled = true;
+
+            // Display loading text
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "bot-message loading";
+            loadingDiv.innerText = "Thinking...";
+            chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const response = await fetch("http://localhost:8000/chat-bot/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+
+                // Remove loading text and display bot's response
+                chatBox.removeChild(loadingDiv);
+                chatBox.innerHTML += `<div class='bot-message'>${data.response}</div>`;
+            } catch (error) {
+                console.error("Error:", error);
+                chatBox.removeChild(loadingDiv);
+                chatBox.innerHTML += `<div class='bot-message error'>Error fetching response</div>`;
+            }
+
+            // Re-enable input and button after response
+            inputField.disabled = false;
+            sendButton.disabled = false;
+            inputField.focus();
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
